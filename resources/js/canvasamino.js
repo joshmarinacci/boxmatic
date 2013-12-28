@@ -382,10 +382,8 @@ amino.setupEventHandlers = function() {
     
     attachEvent(dom,'mousedown',function(e){
         mouseState.pressed = true;
-        console.log("got mousedown",e);
         e.preventDefault();
         var pt = toXY(e);
-        console.log("turned into ",pt);
         input.processEvent(Core._core,{
             type:"mouseposition", 
             x:pt.x,

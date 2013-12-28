@@ -1,59 +1,63 @@
 <!DOCTYPE html>
 <html lang='en'>
 <head>
-<title>Boxmatic</title>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<link rel='stylesheet' href='resources/css/bootstrap.min.css'>
-<link rel='stylesheet' href='resources/css/bootstrap-theme.min.css'>
-
-<script src="resources/js/lightgl.js"></script>
-<script src="csg.js"></script>
-<script src="openjscad.js"></script>
-<script src="resources/js/aminoinput.js"></script>
-<script src="resources/js/amino.js"></script>
-<script src="resources/js/widgets.js"></script>
-<script src="resources/js/canvasamino.js"></script>
-<script src="resources/js/jquery-2.0.3.min.js"></script>
-<script src='resources/js/bootstrap.min.js'></script>
-
-<style type='text/css'>
-canvas { border: 1px solid black; }
-</style>
+    <title>Boxmatic</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <link rel='stylesheet' href='resources/css/bootstrap.min.css'>
+    <link rel='stylesheet' href='resources/css/bootstrap-theme.min.css'>
+    
+    <script src="resources/js/lightgl.js"></script>
+    <script src="csg.js"></script>
+    <script src="openjscad.js"></script>
+    <script src="resources/js/aminoinput.js"></script>
+    <script src="resources/js/amino.js"></script>
+    <script src="resources/js/widgets.js"></script>
+    <script src="resources/js/canvasamino.js"></script>
+    <script src="resources/js/jquery-2.0.3.min.js"></script>
+    <script src='resources/js/bootstrap.min.js'></script>
+    
+    <style type='text/css'>
+    canvas { border: 1px solid black; }
+    </style>
 </head>
 <body>
 
 <div class='container'>
 
-<h1>Boxmatic</h1>
-
-
-<div class='row'>
-<h3 class='col-md-6'>Side editor</h3>
-<h3 class='col-md-6'>3D view</h3>
-</div>
-
-
-<div class='row'>
-<div class='col-md-6'>
-<canvas id='editor' width=300 height=300></canvas>
-</div>
-<div class='col-md-6'>
-<div id='viewer'></div>
-</div>
-</div>
-
-<div class='row'>
-<div class='col-md-12'>
-<div class='btn-group'>
-<button type='button' class='btn btn-default'>Recenter flat</button>
-<button type='button' class='btn btn-default'>Recenter angle</button>
-</div>
-<div class='btn-group'>
-<button type='button' class='btn btn-default'>Recenter flat</button>
-<button type='button' class='btn btn-default'>Recenter angle</button>
-</div>
-</div>
-</div>
+    <h1>Boxmatic</h1>
+    
+    
+    <div class='row'>
+    <h3 class='col-md-6'>Side Editor</h3>
+    <h3 class='col-md-6'>3D view</h3>
+    </div>
+    <div class='row'>
+    <p class='col-md-6'>drag colored holes around</h3>
+    <p class='col-md-6'>view auto updates, drag to rotate</h3>
+    </div>
+    
+    
+    <div class='row'>
+    <div class='col-md-6'>
+    <canvas id='editor' width=300 height=300></canvas>
+    </div>
+    <div class='col-md-6'>
+    <div id='viewer'></div>
+    </div>
+    </div>
+    
+    <div class='row'>
+    <div class='col-md-12'>
+    <div class='btn-group'>
+    <button type='button' class='btn btn-default disabled'>Recenter flat</button>
+    <button type='button' class='btn btn-default disabled'>Recenter angle</button>
+    </div>
+    <div class='btn-group'>
+    <button type='button' class='btn btn-default disabled'>Recenter flat</button>
+    <button type='button' class='btn btn-default disabled'>Recenter angle</button>
+    </div>
+    </div>
+    </div>
 
 </div>
 
@@ -64,19 +68,25 @@ var gProcessor=null;
 // Show all exceptions to the user:
 OpenJsCad.AlertUserOfUncaughtExceptions();
 var params = {
+    thick: 3,
+    width: 40,
+    height: 30,
+    depth: 30,
     rect1: {
-        tx: 0,
-        ty: 0,
-        rx:  5
+        tx: -20,
+        ty: -5,
+        radx: 10,
+        rady: 20,
     },
     rect2: {
-        tx: 0,
-        ty: 0,
+        tx: 20,
+        ty: 5,
+        radx: 5,
+        rady: 15,
     },
 }
 
 function onload() {
-    console.log("onloading");
     
     var options = {
         viewerwidth:400,
@@ -86,7 +96,6 @@ function onload() {
     gProcessor = new OpenJsCad.Processor(
         document.getElementById("viewer"),
         function() {
-            console.log("changed");
         }
         ,options
     );
@@ -95,12 +104,27 @@ function onload() {
     setupAmino();
 }
 
+function replacePattern(text, name, value) {
+    return text.replace(new RegExp("@@"+name+"@@"),''+value);
+}
+
 function updateSolid() {
     var text = document.getElementById('code').text;
-    text = text.replace(/@@rect1xoff@@/,''+params.rect1.tx);
-    text = text.replace(/@@rect1yoff@@/,''+params.rect1.ty);
-    text = text.replace(/@@rect2xoff@@/,''+params.rect2.tx);
-    text = text.replace(/@@rect2yoff@@/,''+params.rect2.ty);
+    
+    for(var key in params) {
+        if(typeof params[key] == 'object') {
+            var obj = params[key];
+            for(k2 in obj) {
+                var val = obj[k2];
+                text = replacePattern(text, key+""+k2, val);
+            }
+        } else {
+            text = replacePattern(text,key,params[key]);
+        }
+    }
+    
+    
+    console.log(text);
     gProcessor.setJsCad(text);
 }
 
@@ -109,40 +133,54 @@ function setupAmino() {
     console.log("setting up amino");
     amino.setCanvas("editor");
     amino.startApp(function(core,stage) {
-        console.log("starting");
         
-        var root = new amino.ProtoGroup();
+        var root = new amino.ProtoGroup()
+            .setScalex(2.0).setScaley(2.0)
+        ;
         stage.setRoot(root);
 
 
-        var body = new amino.ProtoRect().setW(80).setH(60).setFill("#0000ff")
-            .setScalex(2.0).setScaley(2.0)
-        ;
+        var body = new amino.ProtoRect()
+            .setW(params.width*2)
+            .setH(params.height*2)
+            .setFill("#0000ff")
+            ;
         root.add(body);
         
         var dragfunc = function(e) {
-        console.log('dragging');
-            e.target.setTx(e.target.getTx()+e.dx);
-            e.target.setTy(e.target.getTy()+e.dy);
+            e.target.setTx(e.target.getTx()+e.dx/2);
+            e.target.setTy(e.target.getTy()+e.dy/2);
         };
 
-        var rect = new amino.ProtoRect().setW(20).setH(10).setTx(0).setTy(0);
+        var rect = new amino.ProtoRect()
+            .setW(params.rect1.radx*2)
+            .setH(params.rect1.rady*2)
+            .setFill("#ff8888")
+            .setTx(params.rect1.tx+params.width - params.rect1.radx)
+            .setTy(-(params.rect1.ty -params.height + params.rect1.rady))
+            ;
         root.add(rect);
         core.on("drag",rect,dragfunc);
         
-        var rect2 = new amino.ProtoRect().setW(10).setH(30).setFill("#00ff00");
+        var rect2 = new amino.ProtoRect()
+            .setW(params.rect2.radx*2)
+            .setH(params.rect2.rady*2)
+            .setFill("#88ff88")
+            .setTx(params.rect2.tx + params.width  - params.rect2.radx)
+            .setTy(-(params.rect2.ty - params.height + params.rect2.rady))
+            ;
         core.on('drag',rect2,dragfunc);
         root.add(rect2);
         
         
         core.on("release",rect,function(e) {
-            params.rect1.tx= rect.getTx()/2 - 40 + 10;
-            params.rect1.ty = 60/2-rect.getTy()/2-5;
+            params.rect1.tx= rect.getTx() + params.rect1.radx - params.width;
+            params.rect1.ty = params.height -rect.getTy() - params.rect1.rady;
             updateSolid();
         });
         core.on("release",rect2,function(e) {
-            params.rect2.tx = rect2.getTx()/2 - 40 + 10;
-            params.rect2.ty = 60/2-rect2.getTy()/2-5;
+            params.rect2.tx = rect2.getTx() + params.rect2.radx - params.width;
+            params.rect2.ty = params.height - rect2.getTy() - params.rect2.rady;
             updateSolid();
         });
         
@@ -154,14 +192,18 @@ $(document).ready(onload);
 
 <script language="template" id="code">
 function main() {
-    var thick = 1; 
-    var width = 40;
-    var depth = 30;
-    var height = 30;
-    var rect1xoff = @@rect1xoff@@;
-    var rect1yoff = @@rect1yoff@@;
-    var rect2xoff = @@rect2xoff@@;
-    var rect2yoff = @@rect2yoff@@;
+    var thick = @@thick@@; 
+    var width = @@width@@;
+    var height = @@height@@;
+    var depth = @@depth@@;
+    var rect1xoff = @@rect1tx@@;
+    var rect1yoff = @@rect1ty@@;
+    var rect1radx = @@rect1radx@@;
+    var rect1rady = @@rect1rady@@;
+    var rect2xoff = @@rect2tx@@;
+    var rect2yoff = @@rect2ty@@;
+    var rect2radx = @@rect2radx@@;
+    var rect2rady = @@rect2rady@@;
     
     var cube = CSG.cube({
         radius:[width,depth,height]
@@ -181,19 +223,19 @@ function main() {
     //front face
     
     // cut out a circle
-    var cutout = CAG.circle({center:[0,0], radius: 4, resolution: 20});
-    var cutout2 = cutout.extrudeInPlane("-Z","X",10).translate([0,-depth,0]);
+    //var cutout = CAG.circle({center:[0,0], radius: 4, resolution: 20});
+    //var cutout2 = cutout.extrudeInPlane("-Z","X",10).translate([0,-depth,0]);
     //base = base.subtract(cutout2);
     
     //cut out a rectangle
-    var square = CAG.rectangle({center:[0,0], radius:[5,10]})
+    var square = CAG.rectangle({center:[0,0], radius:[rect1rady,rect1radx]})
         .extrudeInPlane("-Z","X",10)
         .translate([0,-depth,0])
         .translate([rect1xoff,0,rect1yoff])
         ;
     base = base.subtract(square);
     
-    var square2 = CAG.rectangle({center:[0,0], radius:[15,5]})
+    var square2 = CAG.rectangle({center:[0,0], radius:[rect2rady,rect2radx]})
         .extrudeInPlane("-Z","X",10)
         .translate([0,-depth,0])
         .translate([rect2xoff,0,rect2yoff])
