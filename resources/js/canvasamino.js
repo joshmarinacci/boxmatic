@@ -463,7 +463,7 @@ amino.setupEventHandlers = function() {
             state:0
         });
     });
-    
+/*    
     attachEvent(window,'keydown',function(e){
         if(e.metaKey) return;
         e.preventDefault();
@@ -483,6 +483,7 @@ amino.setupEventHandlers = function() {
                 keycode: e.keyCode,
         });
     });
+    */
     /*
     if(window.DeviceMotionEvent) {
         console.log("motion IS supported");

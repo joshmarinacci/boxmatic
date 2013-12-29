@@ -28,28 +28,24 @@
     
     <div class='row'>
         <div class='col-md-6'>
-            <form role='form' class='form-horizontal'>
+            <form role='form' class='form-inline'>
                 <div class='form-group'>
                     <label for='boxwidth' class='col-sm-4 control-label'>Box Width</label>
-                    <div class='col-sm-8'>
+                    <div class='col-xs-2'>
                         <input type='text' class='form-control' id='boxwidth' value='40'>
                     </div>
-                </div>
-                <div class='form-group'>
                     <label for='boxheight' class='col-sm-4 control-label'>Box Height</label>
-                    <div class='col-sm-8'>
+                    <div class='col-xs-2'>
                         <input type='text' class='form-control' id='boxheight' value='30'>
                     </div>
-                </div>
+                </div>  
                 <div class='form-group'>
                     <label for='boxdepth' class='col-sm-4 control-label'>Box Depth</label>
-                    <div class='col-sm-8'>
+                    <div class='col-xs-2'>
                         <input type='text' class='form-control' id='boxdepth' value='20'>
                     </div>
-                </div>
-                <div class='form-group'>
                     <label for='boxthick' class='col-sm-4 control-label'>Wall Thickness</label>
-                    <div class='col-sm-8'>
+                    <div class='col-xs-2'>
                         <input type='text' class='form-control' id='boxthick' value='3'>
                     </div>
                 </div>
@@ -132,6 +128,26 @@ function onload() {
     updateSolid();
     
     setupAmino();
+    
+    
+    $("#boxwidth").change(function() {
+        params.width = parseFloat($("#boxwidth").val());
+        bodyRect.setW(params.width*2);
+        updateSolid();
+    });
+    $("#boxheight").change(function() {
+        params.height = parseFloat($("#boxheight").val());
+        bodyRect.setH(params.height*2);
+        updateSolid();
+    });
+    $("#boxdepth").change(function() {
+        params.depth = parseFloat($("#boxdepth").val());
+        updateSolid();
+    });
+    $("#boxthick").change(function() {
+        params.thick = parseFloat($("#boxthick").val());
+        updateSolid();
+    });
 }
 
 function replacePattern(text, name, value) {
@@ -158,7 +174,7 @@ function updateSolid() {
     gProcessor.setJsCad(text);
 }
 
-
+var bodyRect = null;
 function setupAmino() {
     console.log("setting up amino");
     amino.setCanvas("editor");
@@ -170,12 +186,12 @@ function setupAmino() {
         stage.setRoot(root);
 
 
-        var body = new amino.ProtoRect()
+        bodyRect = new amino.ProtoRect()
             .setW(params.width*2)
             .setH(params.height*2)
             .setFill("#0000ff")
             ;
-        root.add(body);
+        root.add(bodyRect);
         
         var dragfunc = function(e) {
             e.target.setTx(e.target.getTx()+e.dx/2);
