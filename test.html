@@ -67,12 +67,12 @@
     <div class='col-md-6'>
     
         <ul class='nav nav-tabs' id='faces'>
-            <li><a href='#' id='lefttab'>left</a></li>
-            <li class='active'><a href='#' id='fronttab'>front</a></li>
-            <li><a href='#'>right</a></li>
-            <li><a href='#'>back</a></li>
-            <li><a href='#'>top</a></li>
-            <li><a href='#'>bottom</a></li>
+            <li class='active'><a href='#' id='tabfront'>front</a></li>
+            <li><a href='#' id='tabback'>back</a></li>
+            <li><a href='#' id='tableft'>left</a></li>
+            <li><a href='#' id='tabright'>right</a></li>
+            <li><a href='#' id='tabtop'>top</a></li>
+            <li><a href='#' id='tabbottom'>bottom</a></li>
         </ul>
         
     
@@ -111,23 +111,51 @@ var params = {
     depth: 20,
     
     faces: {
-        front: {
-            rect1: {
-                tx:  -20,
-                ty:   -5,
+        left: [
+            {
+                type: 'rect',
+                tx:  0,
+                ty:   0,
                 radx: 10,
-                rady: 20,
+                rady: 10,
             },
-            rect2: {
-                tx:   20,
-                ty:    5,
-                radx:  5,
-                rady: 15,
+        ],
+        front: [
+            {
+                type: 'rect',
+                tx:  0,
+                ty:   0,
+                radx: 10,
+                rady: 10,
             },
-        }
+        ],
+        right:[],
+        back:[],
+        top: [],
+        bottom: [],
     }
 }
 
+var funcs = {
+    front: {
+        getSize: function() { return { width: params.width, height: params.height } },
+    },
+    back: {
+        getSize: function() { return { width: params.width, height: params.height } },
+    },
+    left: {
+        getSize: function() { return { width: params.depth, height: params.height } },
+    },
+    right: {
+        getSize: function() { return { width: params.depth, height: params.height } },
+    },
+    top: {
+        getSize: function() { return { width: params.width, height: params.depth } },
+    },
+    bottom: {
+        getSize: function() { return { width: params.width, height: params.depth } },
+    },
+}
 function onload() {
     
     var options = {
@@ -166,13 +194,10 @@ function onload() {
     });
     
     $("#faces a").click(function() {
-        console.log("changed the tab", $(this).attr('id'));
-        if($(this).attr('id') == 'lefttab') {
-            updateFace('left');
-        }
-        if($(this).attr('id') == 'fronttab') {
-            updateFace('front');
-        }
+        $("#faces li").removeClass('active');
+        $(this).parent().addClass('active');
+        var faceid = $(this).attr('id').substring('tab'.length);
+        updateFace(params.faces[faceid],faceid);
     });
 }
 
@@ -184,7 +209,6 @@ function updateSolid() {
     var text = document.getElementById('code').text;
     
     for(var key in params) {
-        console.log('processing ' + key);    
         if(typeof params[key] == 'object') {
             var obj = params[key];
             for(k2 in obj) {
@@ -197,10 +221,30 @@ function updateSolid() {
     }
     
     
+    var holes = "";
+    for(var face in params.faces) {
+        params.faces[face].forEach(function(h) {
+            holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
+            if(face == 'front') {
+                holes +='.extrudeInPlane("-Z","X",10)\n';
+                holes +='.translate([0,-depth,0])';
+                holes +='.translate(['+h.tx+',0,'+h.ty+'])';
+            }
+            if(face == 'left') {
+                holes += '.extrudeInPlane("-Z","Y",5)\n';
+                holes += '.translate([-width,0,0])\n';
+                holes += '.translate([0,'+(-h.tx)+','+h.ty+'])\n';
+            }
+            holes += ');\n';
+        });
+    }
+    
+    
+    text = text.replace(new RegExp("@@generated@@"),holes);
     console.log(text);
+    
     gProcessor.setJsCad(text);
 }
-
 var bodyRect = null;
 var aminoRoot = null;
 var core = null;
@@ -208,33 +252,34 @@ var dragfunc = function(e) {
     e.target.setTx(e.target.getTx()+e.dx/2);
     e.target.setTy(e.target.getTy()+e.dy/2);
 };
-function updateFace(face) {
+
+function updateFace(face,faceid) {
     aminoRoot.clear();
+    var size = funcs[faceid].getSize();
     bodyRect = new amino.ProtoRect()
-        .setW(params.width*2)
-        .setH(params.height*2)
+        .setW(size.width*2)
+        .setH(size.height*2)
         .setFill("#0000ff")
         ;
     aminoRoot.add(bodyRect);
-
     for(var r in face) {
-        console.log(r);
         var hole = face[r];
         var rect = new amino.ProtoRect()
             .setW(hole.radx*2)
             .setH(hole.rady*2)
             .setFill("#ff8888")
-            .setTx(hole.tx+params.width - hole.radx)
-            .setTy(-(hole.ty -params.height + hole.rady))
+            .setTx( hole.tx  + size.width  - hole.radx)
+            .setTy(-(hole.ty - size.height + hole.rady))
             ;
         aminoRoot.add(rect);
         core.on("drag",rect,dragfunc);
         core.on("release",rect,function(e) {
-            hole.tx = rect.getTx() + hole.radx - params.width;
-            hole.ty = params.height -rect.getTy() - hole.rady;
+            hole.tx = rect.getTx() + hole.radx - size.width;
+            hole.ty = size.height -rect.getTy() - hole.rady;
             updateSolid();
         });
     }
+    
 }
 function setupAmino() {
     console.log("setting up amino");
@@ -246,42 +291,7 @@ function setupAmino() {
         ;
         stage.setRoot(aminoRoot);
 
-        updateFace(params.faces.front);
-
-        
-/*
-        var rect = new amino.ProtoRect()
-            .setW(params.rect1.radx*2)
-            .setH(params.rect1.rady*2)
-            .setFill("#ff8888")
-            .setTx(params.rect1.tx+params.width - params.rect1.radx)
-            .setTy(-(params.rect1.ty -params.height + params.rect1.rady))
-            ;
-        root.add(rect);
-        core.on("drag",rect,dragfunc);
-        
-        var rect2 = new amino.ProtoRect()
-            .setW(params.rect2.radx*2)
-            .setH(params.rect2.rady*2)
-            .setFill("#88ff88")
-            .setTx(params.rect2.tx + params.width  - params.rect2.radx)
-            .setTy(-(params.rect2.ty - params.height + params.rect2.rady))
-            ;
-        core.on('drag',rect2,dragfunc);
-        root.add(rect2);
-        
-        
-        core.on("release",rect,function(e) {
-            params.rect1.tx= rect.getTx() + params.rect1.radx - params.width;
-            params.rect1.ty = params.height -rect.getTy() - params.rect1.rady;
-            updateSolid();
-        });
-        core.on("release",rect2,function(e) {
-            params.rect2.tx = rect2.getTx() + params.rect2.radx - params.width;
-            params.rect2.ty = params.height - rect2.getTy() - params.rect2.rady;
-            updateSolid();
-        });
-        */
+        updateFace(params.faces.front,'front');
     });
 }
 
@@ -295,15 +305,6 @@ function main() {
     var height = @@height@@;
     var depth = @@depth@@;
     
-    var rect1xoff = @@rect1tx@@;
-    var rect1yoff = @@rect1ty@@;
-    var rect1radx = @@rect1radx@@;
-    var rect1rady = @@rect1rady@@;
-    var rect2xoff = @@rect2tx@@;
-    var rect2yoff = @@rect2ty@@;
-    var rect2radx = @@rect2radx@@;
-    var rect2rady = @@rect2rady@@;
-    
     var cube = CSG.cube({
         radius:[width,depth,height]
     }); 
@@ -315,32 +316,7 @@ function main() {
     
     var base = cube.subtract(inside);
     
-    //rounded edges
-    //base = base.expand(2,8);
-    
-    
-    //front face
-    
-    // cut out a circle
-    //var cutout = CAG.circle({center:[0,0], radius: 4, resolution: 20});
-    //var cutout2 = cutout.extrudeInPlane("-Z","X",10).translate([0,-depth,0]);
-    //base = base.subtract(cutout2);
-    
-    //cut out a rectangle
-    var square = CAG.rectangle({center:[0,0], radius:[rect1rady,rect1radx]})
-        .extrudeInPlane("-Z","X",10)
-        .translate([0,-depth,0])
-        .translate([rect1xoff,0,rect1yoff])
-        ;
-    base = base.subtract(square);
-    
-    var square2 = CAG.rectangle({center:[0,0], radius:[rect2rady,rect2radx]})
-        .extrudeInPlane("-Z","X",10)
-        .translate([0,-depth,0])
-        .translate([rect2xoff,0,rect2yoff])
-        ;
-    base = base.subtract(square2);
-    
+    @@generated@@
     return base;
 }
 
