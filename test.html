@@ -109,17 +109,9 @@ var params = {
     width: 40,
     height: 30,
     depth: 20,
+    currentFace: 'front',
     
     faces: {
-        left: [
-            {
-                type: 'rect',
-                tx:  0,
-                ty:   0,
-                radx: 10,
-                rady: 10,
-            },
-        ],
         front: [
             {
                 type: 'rect',
@@ -129,8 +121,9 @@ var params = {
                 rady: 10,
             },
         ],
-        right:[],
         back:[],
+        left: [],
+        right:[],
         top: [],
         bottom: [],
     }
@@ -224,16 +217,27 @@ function updateSolid() {
     var holes = "";
     for(var face in params.faces) {
         params.faces[face].forEach(function(h) {
+            holes += ' //  '+face+' '+h.type + '\n';
             holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
             if(face == 'front') {
-                holes +='.extrudeInPlane("-Z","X",10)\n';
-                holes +='.translate([0,-depth,0])';
-                holes +='.translate(['+h.tx+',0,'+h.ty+'])';
+                holes +='  .extrudeInPlane("-Z","X",10)\n';
+                holes +='  .translate([0,-depth,0])';
+                holes +='  .translate(['+h.tx+',0,'+h.ty+'])\n';
+            }
+            if(face == 'back') {
+                holes +='  .extrudeInPlane("-Z","X",10)\n';
+                holes +='  .translate([0,depth,0])';
+                holes +='  .translate(['+-h.tx+',0,'+h.ty+'])\n';
             }
             if(face == 'left') {
-                holes += '.extrudeInPlane("-Z","Y",5)\n';
-                holes += '.translate([-width,0,0])\n';
-                holes += '.translate([0,'+(-h.tx)+','+h.ty+'])\n';
+                holes += '  .extrudeInPlane("-Z","Y",10)\n';
+                holes += '  .translate([-width,0,0])\n';
+                holes += '  .translate([0,'+(-h.tx)+','+h.ty+'])\n';
+            }
+            if(face == 'right') {
+                holes += '  .extrudeInPlane("-Z","Y",10)\n';
+                holes += '  .translate([+width,0,0])\n';
+                holes += '  .translate([0,'+(+h.tx)+','+h.ty+'])\n';
             }
             holes += ');\n';
         });
@@ -253,7 +257,30 @@ var dragfunc = function(e) {
     e.target.setTy(e.target.getTy()+e.dy/2);
 };
 
+function addRect(e) {
+    console.log('adding a rect',e);
+    var face = params.faces[params.currentFace];
+    console.log(face);
+    
+    face.push({
+        type:'rect',
+        tx: 0, 
+        ty: 0,
+        radx: 10,
+        rady: 10,
+    });
+    updateFace(face,params.currentFace);
+    updateSolid();
+}
+function addCircle(e) {
+    console.log('adding a circle',e);
+}
+function addScrew(e) {
+    console.log('adding a screw,e');
+}
+
 function updateFace(face,faceid) {
+    params.currentFace = faceid;
     aminoRoot.clear();
     var size = funcs[faceid].getSize();
     bodyRect = new amino.ProtoRect()
@@ -289,9 +316,20 @@ function setupAmino() {
         aminoRoot = new amino.ProtoGroup()
             .setScalex(2.0).setScaley(2.0)
         ;
-        stage.setRoot(aminoRoot);
+        
+        var root = new amino.ProtoGroup();
+        root.add(aminoRoot);
+        stage.setRoot(root);
 
         updateFace(params.faces.front,'front');
+        
+        var toolbar = new amino.ProtoGroup()
+            .setTx(300-80);
+        toolbar.add(new widgets.PushButton().setText('+ rect').setW(80).setH(30).onAction(addRect));
+        toolbar.add(new widgets.PushButton().setText('+ circle').setW(80).setH(30).setTy(40).onAction(addCircle));
+        toolbar.add(new widgets.PushButton().setText('+ screw').setW(80).setH(30).setTy(80).onAction(addScrew));
+        root.add(toolbar);
+        
     });
 }
 
@@ -316,7 +354,7 @@ function main() {
     
     var base = cube.subtract(inside);
     
-    @@generated@@
+@@generated@@
     return base;
 }
 
