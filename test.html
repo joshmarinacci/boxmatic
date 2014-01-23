@@ -213,6 +213,7 @@ function onload() {
         params.selectedHole[name] = value;
         var face = params.faces[params.currentFace];
         updateFace(face,params.currentFace);
+        updateSolid();
     }
     $("#propertiesPanel #hole-tx").change(updateHoleFromField);
     $("#propertiesPanel #hole-ty").change(updateHoleFromField);
@@ -249,7 +250,7 @@ function updateSolid() {
                 holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
             }
             if(h.type == 'circle') {
-                holes += "base = base.subtract(CAG.circle({center:[0,0], radius:"+h.radx+", resolution:15})\n";
+                holes += "base = base.subtract(CAG.circle({center:[0,0], radius:"+h.rady+", resolution:16})\n";
             }
             if(face == 'front') {
                 holes +='  .extrudeInPlane("-Z","X",10)\n';
@@ -324,8 +325,8 @@ function updateSelectedHole() {
     $("#propertiesPanel #hole-type").val(hole.type);
     $("#propertiesPanel #hole-tx").val(hole.tx);
     $("#propertiesPanel #hole-ty").val(hole.ty);
-    $("#propertiesPanel #hole-width").val(hole.radx);
-    $("#propertiesPanel #hole-height").val(hole.rady);
+    $("#propertiesPanel #hole-radx").val(hole.radx);
+    $("#propertiesPanel #hole-rady").val(hole.rady);
 }
 function setSelectedHole(hole) {
     params.selectedHole = hole;
@@ -358,9 +359,9 @@ function updateFace(face,faceid) {
         }
         if(hole.type == 'circle') {
             var points = [];
-            for(var i=0; i<15; i++) {
-                points.push(Math.sin(Math.PI*2.0/15.0 * i)*hole.radx);
-                points.push(Math.cos(Math.PI*2.0/15.0 * i)*hole.radx);
+            for(var i=0; i<16; i++) {
+                points.push(Math.sin(Math.PI*2.0/16.0 * i)*hole.radx);
+                points.push(Math.cos(Math.PI*2.0/16.0 * i)*hole.radx);
                 points.push(0);
             }
             node = new amino.ProtoPoly()
@@ -388,7 +389,6 @@ function updateFace(face,faceid) {
     
 }
 function setupAmino() {
-    console.log("setting up amino");
     amino.setCanvas("editor");
     amino.startApp(function(ccore,stage) {
         core = ccore;
