@@ -75,26 +75,37 @@
             <li><a href='#' id='tabbottom'>bottom</a></li>
         </ul>
         
+        <div class='row'>
+            <div class='col-md-8'>
+            <canvas id='editor' width=300 height=300 ></canvas>
+            </div>
+            <div class='col-md-4'>
+            
+                <div class='row'>
+                    <form role='form' class='form-inline' id='propertiesPanel'>
+                    <div class='form-group'>
+                        <label for='hole-type'>type</label>
+                        <input id='hole-type' type='text' class='form-control' value=''>
+                        <label for='hole-radx'>width</label>
+                        <input id='hole-radx' type='text' class='form-control' value='20'>
+                        <label for='hole-rady'>height</label>
+                        <input id='hole-rady' type='text' class='form-control' value='20'>
+                        <label for='hole-tx'>x offset</label>
+                        <input  id='hole-tx' type='text' class='form-control' value='20'>
+                        <label for='hole-ty'>y offset</label>
+                        <input  id='hole-ty' type='text' class='form-control' value='20'>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     
-    <canvas id='editor' width=300 height=300></canvas>
     </div>
     <div class='col-md-6'>
     <div id='viewer'></div>
     </div>
     </div>
     
-    <div class='row'>
-    <div class='col-md-12'>
-    <div class='btn-group'>
-    <button type='button' class='btn btn-default disabled'>Recenter flat</button>
-    <button type='button' class='btn btn-default disabled'>Recenter angle</button>
-    </div>
-    <div class='btn-group'>
-    <button type='button' class='btn btn-default disabled'>Recenter flat</button>
-    <button type='button' class='btn btn-default disabled'>Recenter angle</button>
-    </div>
-    </div>
-    </div>
 
 </div>
 
@@ -119,6 +130,7 @@ var params = {
                 ty:   0,
                 radx: 10,
                 rady: 10,
+                id:'foo',
             },
         ],
         back:[],
@@ -192,6 +204,21 @@ function onload() {
         var faceid = $(this).attr('id').substring('tab'.length);
         updateFace(params.faces[faceid],faceid);
     });
+    
+    function updateHoleFromField() {
+        if(!params.selectedHole) return;
+        var value = parseFloat($(this).val());
+        var id = $(this).attr('id');
+        var name = id.substring('hole-'.length);
+        params.selectedHole[name] = value;
+        var face = params.faces[params.currentFace];
+        updateFace(face,params.currentFace);
+    }
+    $("#propertiesPanel #hole-tx").change(updateHoleFromField);
+    $("#propertiesPanel #hole-ty").change(updateHoleFromField);
+    $("#propertiesPanel #hole-radx").change(updateHoleFromField);
+    $("#propertiesPanel #hole-rady").change(updateHoleFromField);
+    $("#propertiesPanel input").attr('disabled','disabled');
 }
 
 function replacePattern(text, name, value) {
@@ -245,8 +272,6 @@ function updateSolid() {
     
     
     text = text.replace(new RegExp("@@generated@@"),holes);
-    console.log(text);
-    
     gProcessor.setJsCad(text);
 }
 var bodyRect = null;
@@ -268,6 +293,7 @@ function addRect(e) {
         ty: 0,
         radx: 10,
         rady: 10,
+        id: 'newone',
     });
     updateFace(face,params.currentFace);
     updateSolid();
@@ -277,6 +303,22 @@ function addCircle(e) {
 }
 function addScrew(e) {
     console.log('adding a screw,e');
+}
+
+function updateSelectedHole() {
+    var hole = params.selectedHole;
+    if(!hole) return;
+    console.log("hole = ",hole);
+    $("#propertiesPanel #hole-type").val(hole.type);
+    $("#propertiesPanel #hole-tx").val(hole.tx);
+    $("#propertiesPanel #hole-ty").val(hole.ty);
+    $("#propertiesPanel #hole-width").val(hole.radx);
+    $("#propertiesPanel #hole-height").val(hole.rady);
+}
+function setSelectedHole(hole) {
+    params.selectedHole = hole;
+    $("#propertiesPanel input").removeAttr('disabled');
+    updateSelectedHole();
 }
 
 function updateFace(face,faceid) {
@@ -289,8 +331,8 @@ function updateFace(face,faceid) {
         .setFill("#0000ff")
         ;
     aminoRoot.add(bodyRect);
-    for(var r in face) {
-        var hole = face[r];
+    face.forEach(function(hole) {
+        console.log("hfole = ", hole);
         var rect = new amino.ProtoRect()
             .setW(hole.radx*2)
             .setH(hole.rady*2)
@@ -299,13 +341,17 @@ function updateFace(face,faceid) {
             .setTy(-(hole.ty - size.height + hole.rady))
             ;
         aminoRoot.add(rect);
+        core.on('press',rect,function(e) {
+            setSelectedHole(hole);
+        });
         core.on("drag",rect,dragfunc);
         core.on("release",rect,function(e) {
             hole.tx = rect.getTx() + hole.radx - size.width;
             hole.ty = size.height -rect.getTy() - hole.rady;
+            updateSelectedHole();
             updateSolid();
         });
-    }
+    });
     
 }
 function setupAmino() {
