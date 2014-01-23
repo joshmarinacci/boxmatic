@@ -76,27 +76,46 @@
         </ul>
         
         <div class='row'>
-            <div class='col-md-8'>
+            <div class='col-md-6'>
             <canvas id='editor' width=300 height=300 ></canvas>
             </div>
-            <div class='col-md-4'>
+            <div class='col-md-6'>
             
-                <div class='row'>
-                    <form role='form' class='form-inline' id='propertiesPanel'>
+                <form role='form' class='form-horizontal' id='propertiesPanel'>
                     <div class='form-group'>
-                        <label for='hole-type'>type</label>
-                        <input id='hole-type' type='text' class='form-control' value=''>
-                        <label for='hole-radx'>width</label>
-                        <input id='hole-radx' type='text' class='form-control' value='20'>
-                        <label for='hole-rady'>height</label>
-                        <input id='hole-rady' type='text' class='form-control' value='20'>
-                        <label for='hole-tx'>x offset</label>
-                        <input  id='hole-tx' type='text' class='form-control' value='20'>
-                        <label for='hole-ty'>y offset</label>
-                        <input  id='hole-ty' type='text' class='form-control' value='20'>
+                        <label for='hole-type' class='col-sm-4 control-label input-sm'>type</label>
+                        <div class='col-sm-8'>
+                            <input id='hole-type' type='text' class='form-control input-sm' value=''>
+                        </div>
                     </div>
+                    <div class='form-group'>
+                        <label for='hole-radx' class='col-sm-4 control-label input-sm'>width</label>
+                        <div class='col-sm-8'>
+                            <input id='hole-radx' type='text' class='form-control input-sm' value='20'>
+                        </div>
+                    </div>
+                    <div class='form-group'>
+                        <label for='hole-rady' class='col-sm-4 control-label input-sm'>height</label>
+                        <div class='col-sm-8'>
+                            <input id='hole-rady' type='text' class='form-control input-sm' value='20'>
+                        </div>
+                    </div>
+                        
+                    <div class='form-group'>
+                        <label for='hole-tx' class='col-sm-4 control-label input-sm'>x&nbsp;offset</label>
+                        <div class='col-sm-8'>
+                        <input  id='hole-tx' type='text' class='form-control input-sm' value='20'>
+                        </div>
+                    </div>
+                        
+                    <div class='form-group'>
+                        <label for='hole-ty' class='col-sm-4 control-label input-sm'>y&nbsp;offset</label>
+                        <div class='col-sm-8'>
+                        <input  id='hole-ty' type='text' class='form-control input-sm' value='20'>
+                        </div>
+                    </div>
+                        
                     </form>
-                </div>
             </div>
         </div>
     
@@ -320,6 +339,26 @@ function addScrew(e) {
     console.log('adding a screw,e');
 }
 
+function deleteNode(e) {
+    console.log('deleting selected node');
+    if(params.selectedHole) {
+        for(var faceName in params.faces) {
+            var face = params.faces[faceName];
+            for(var i=0; i<face.length; i++) {
+                if(face[i] == params.selectedHole) {
+                    console.log("found teh hole to dedlete");
+                    face.splice(i,1);
+                    updateFace(face,faceName);
+                    updateSolid();
+                    break;
+                }
+            };
+        }
+        params.selectedHole == null;
+        $("#propertiesPanel input").attr('disabled','disabled');
+    }
+}
+
 function updateSelectedHole() {
     var hole = params.selectedHole;
     if(!hole) return;
@@ -416,6 +455,7 @@ function setupAmino() {
         toolbar.add(new widgets.PushButton().setText('+ rect').setW(80).setH(30).onAction(addRect));
         toolbar.add(new widgets.PushButton().setText('+ circle').setW(80).setH(30).setTy(40).onAction(addCircle));
         toolbar.add(new widgets.PushButton().setText('+ screw').setW(80).setH(30).setTy(80).onAction(addScrew));
+        toolbar.add(new widgets.PushButton().setText('delete').setW(80).setH(30).setTy(140).onAction(deleteNode));
         root.add(toolbar);
         
     });
