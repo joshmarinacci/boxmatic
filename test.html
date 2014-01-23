@@ -245,7 +245,12 @@ function updateSolid() {
     for(var face in params.faces) {
         params.faces[face].forEach(function(h) {
             holes += ' //  '+face+' '+h.type + '\n';
-            holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
+            if(h.type =='rect') {
+                holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
+            }
+            if(h.type == 'circle') {
+                holes += "base = base.subtract(CAG.circle({center:[0,0], radius:"+h.radx+", resolution:15})\n";
+            }
             if(face == 'front') {
                 holes +='  .extrudeInPlane("-Z","X",10)\n';
                 holes +='  .translate([0,-depth,0])';
@@ -283,23 +288,31 @@ var dragfunc = function(e) {
 };
 
 function addRect(e) {
-    console.log('adding a rect',e);
     var face = params.faces[params.currentFace];
-    console.log(face);
-    
     face.push({
         type:'rect',
         tx: 0, 
         ty: 0,
         radx: 10,
         rady: 10,
-        id: 'newone',
+        id: 'newrect',
     });
     updateFace(face,params.currentFace);
     updateSolid();
 }
 function addCircle(e) {
     console.log('adding a circle',e);
+    var face = params.faces[params.currentFace];
+    face.push({
+        type:'circle',
+        tx:0,
+        ty:0,
+        radx:10,
+        rady:10,
+        id:'newcircle',
+    });
+    updateFace(face,params.currentFace);
+    updateSolid();
 }
 function addScrew(e) {
     console.log('adding a screw,e');
@@ -308,7 +321,6 @@ function addScrew(e) {
 function updateSelectedHole() {
     var hole = params.selectedHole;
     if(!hole) return;
-    console.log("hole = ",hole);
     $("#propertiesPanel #hole-type").val(hole.type);
     $("#propertiesPanel #hole-tx").val(hole.tx);
     $("#propertiesPanel #hole-ty").val(hole.ty);
@@ -333,21 +345,42 @@ function updateFace(face,faceid) {
     aminoRoot.add(bodyRect);
     face.forEach(function(hole) {
         console.log("hfole = ", hole);
-        var rect = new amino.ProtoRect()
-            .setW(hole.radx*2)
-            .setH(hole.rady*2)
-            .setFill("#ff8888")
-            .setTx( hole.tx  + size.width  - hole.radx)
-            .setTy(-(hole.ty - size.height + hole.rady))
-            ;
-        aminoRoot.add(rect);
-        core.on('press',rect,function(e) {
+        var node = null;
+        
+        if(hole.type == 'rect') {
+            node = new amino.ProtoRect()
+                .setW(hole.radx*2)
+                .setH(hole.rady*2)
+                .setFill("#ff8888")
+                .setTx( hole.tx  + size.width  - hole.radx)
+                .setTy(-(hole.ty - size.height + hole.rady))
+                ;
+        }
+        if(hole.type == 'circle') {
+            var points = [];
+            for(var i=0; i<15; i++) {
+                points.push(Math.sin(Math.PI*2.0/15.0 * i)*hole.radx);
+                points.push(Math.cos(Math.PI*2.0/15.0 * i)*hole.radx);
+                points.push(0);
+            }
+            node = new amino.ProtoPoly()
+                .setFill("#ff8888")
+                .setTx( hole.tx  + size.width  - hole.radx)
+                .setTy(-(hole.ty - size.height + hole.rady))
+                .setGeometry(points)
+                .setFilled(1)
+                ;
+        }
+        aminoRoot.add(node);
+        
+        
+        core.on('press',node,function(e) {
             setSelectedHole(hole);
         });
-        core.on("drag",rect,dragfunc);
-        core.on("release",rect,function(e) {
-            hole.tx = rect.getTx() + hole.radx - size.width;
-            hole.ty = size.height -rect.getTy() - hole.rady;
+        core.on("drag",node,dragfunc);
+        core.on("release",node,function(e) {
+            hole.tx = node.getTx() + hole.radx - size.width;
+            hole.ty = size.height -node.getTy() - hole.rady;
             updateSelectedHole();
             updateSolid();
         });
