@@ -250,7 +250,7 @@ function updateSolid() {
                 holes += "base = base.subtract(CAG.rectangle({center:[0,0], radius:["+h.rady+","+h.radx+"]})\n";
             }
             if(h.type == 'circle') {
-                holes += "base = base.subtract(CAG.circle({center:[0,0], radius:"+h.rady+", resolution:16})\n";
+                holes += "base = base.subtract(CAG.circle({center:[0,0], radius:"+h.radx+", resolution:16})\n";
             }
             if(face == 'front') {
                 holes +='  .extrudeInPlane("-Z","X",10)\n';
@@ -278,6 +278,7 @@ function updateSolid() {
     
     
     text = text.replace(new RegExp("@@generated@@"),holes);
+    console.log(text);
     gProcessor.setJsCad(text);
 }
 var bodyRect = null;
@@ -366,8 +367,8 @@ function updateFace(face,faceid) {
             }
             node = new amino.ProtoPoly()
                 .setFill("#ff8888")
-                .setTx( hole.tx  + size.width  - hole.radx)
-                .setTy(-(hole.ty - size.height + hole.rady))
+                .setTx( hole.tx  + size.width  )
+                .setTy(-(hole.ty - size.height))
                 .setGeometry(points)
                 .setFilled(1)
                 ;
@@ -376,12 +377,20 @@ function updateFace(face,faceid) {
         
         
         core.on('press',node,function(e) {
+            e.target.setFill("#ffffff");
             setSelectedHole(hole);
         });
         core.on("drag",node,dragfunc);
         core.on("release",node,function(e) {
-            hole.tx = node.getTx() + hole.radx - size.width;
-            hole.ty = size.height -node.getTy() - hole.rady;
+            e.target.setFill("#ff8888");
+            if(hole.type =='rect') {
+                hole.tx = node.getTx() + hole.radx - size.width;
+                hole.ty = size.height -node.getTy() - hole.rady;
+            }
+            if(hole.type =='circle') {
+                hole.tx = node.getTx() - size.width;
+                hole.ty = size.height - node.getTy();
+            }
             updateSelectedHole();
             updateSolid();
         });
