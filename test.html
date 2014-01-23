@@ -65,6 +65,17 @@
     
     <div class='row'>
     <div class='col-md-6'>
+    
+        <ul class='nav nav-tabs' id='faces'>
+            <li><a href='#' id='lefttab'>left</a></li>
+            <li class='active'><a href='#' id='fronttab'>front</a></li>
+            <li><a href='#'>right</a></li>
+            <li><a href='#'>back</a></li>
+            <li><a href='#'>top</a></li>
+            <li><a href='#'>bottom</a></li>
+        </ul>
+        
+    
     <canvas id='editor' width=300 height=300></canvas>
     </div>
     <div class='col-md-6'>
@@ -98,18 +109,23 @@ var params = {
     width: 40,
     height: 30,
     depth: 20,
-    rect1: {
-        tx: -20,
-        ty: -5,
-        radx: 10,
-        rady: 20,
-    },
-    rect2: {
-        tx: 20,
-        ty: 5,
-        radx: 5,
-        rady: 15,
-    },
+    
+    faces: {
+        front: {
+            rect1: {
+                tx:  -20,
+                ty:   -5,
+                radx: 10,
+                rady: 20,
+            },
+            rect2: {
+                tx:   20,
+                ty:    5,
+                radx:  5,
+                rady: 15,
+            },
+        }
+    }
 }
 
 function onload() {
@@ -148,6 +164,16 @@ function onload() {
         params.thick = parseFloat($("#boxthick").val());
         updateSolid();
     });
+    
+    $("#faces a").click(function() {
+        console.log("changed the tab", $(this).attr('id'));
+        if($(this).attr('id') == 'lefttab') {
+            updateFace('left');
+        }
+        if($(this).attr('id') == 'fronttab') {
+            updateFace('front');
+        }
+    });
 }
 
 function replacePattern(text, name, value) {
@@ -158,6 +184,7 @@ function updateSolid() {
     var text = document.getElementById('code').text;
     
     for(var key in params) {
+        console.log('processing ' + key);    
         if(typeof params[key] == 'object') {
             var obj = params[key];
             for(k2 in obj) {
@@ -175,29 +202,54 @@ function updateSolid() {
 }
 
 var bodyRect = null;
+var aminoRoot = null;
+var core = null;
+var dragfunc = function(e) {
+    e.target.setTx(e.target.getTx()+e.dx/2);
+    e.target.setTy(e.target.getTy()+e.dy/2);
+};
+function updateFace(face) {
+    aminoRoot.clear();
+    bodyRect = new amino.ProtoRect()
+        .setW(params.width*2)
+        .setH(params.height*2)
+        .setFill("#0000ff")
+        ;
+    aminoRoot.add(bodyRect);
+
+    for(var r in face) {
+        console.log(r);
+        var hole = face[r];
+        var rect = new amino.ProtoRect()
+            .setW(hole.radx*2)
+            .setH(hole.rady*2)
+            .setFill("#ff8888")
+            .setTx(hole.tx+params.width - hole.radx)
+            .setTy(-(hole.ty -params.height + hole.rady))
+            ;
+        aminoRoot.add(rect);
+        core.on("drag",rect,dragfunc);
+        core.on("release",rect,function(e) {
+            hole.tx = rect.getTx() + hole.radx - params.width;
+            hole.ty = params.height -rect.getTy() - hole.rady;
+            updateSolid();
+        });
+    }
+}
 function setupAmino() {
     console.log("setting up amino");
     amino.setCanvas("editor");
-    amino.startApp(function(core,stage) {
-        
-        var root = new amino.ProtoGroup()
+    amino.startApp(function(ccore,stage) {
+        core = ccore;
+        aminoRoot = new amino.ProtoGroup()
             .setScalex(2.0).setScaley(2.0)
         ;
-        stage.setRoot(root);
+        stage.setRoot(aminoRoot);
 
+        updateFace(params.faces.front);
 
-        bodyRect = new amino.ProtoRect()
-            .setW(params.width*2)
-            .setH(params.height*2)
-            .setFill("#0000ff")
-            ;
-        root.add(bodyRect);
         
-        var dragfunc = function(e) {
-            e.target.setTx(e.target.getTx()+e.dx/2);
-            e.target.setTy(e.target.getTy()+e.dy/2);
-        };
-
+/*
         var rect = new amino.ProtoRect()
             .setW(params.rect1.radx*2)
             .setH(params.rect1.rady*2)
@@ -229,7 +281,7 @@ function setupAmino() {
             params.rect2.ty = params.height - rect2.getTy() - params.rect2.rady;
             updateSolid();
         });
-        
+        */
     });
 }
 
@@ -242,6 +294,7 @@ function main() {
     var width = @@width@@;
     var height = @@height@@;
     var depth = @@depth@@;
+    
     var rect1xoff = @@rect1tx@@;
     var rect1yoff = @@rect1ty@@;
     var rect1radx = @@rect1radx@@;
